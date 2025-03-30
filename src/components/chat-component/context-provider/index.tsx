@@ -13,6 +13,7 @@ interface ChatContext {
   nameSpace?: string
   userName?: string
   addComment: ({ body, parent }: AddComment) => void
+  removeComment: (commentId: number) => void
 }
 
 export const ChatContext = createContext<ChatContext | undefined>(undefined);

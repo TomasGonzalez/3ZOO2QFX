@@ -17,10 +17,12 @@ export type dbClientReturnTypes = {
   getChatTimeline: () => Promise<ResolvedChatComment[]>;
 }
 
-const SCHEMA_VERSION = 1;
+const SCHEMA_VERSION = 8;
 async function dbClient({ nameSpace }: DBClientProps) {
   const db = await getDBConnectionAndCreateStores(nameSpace);
 
+  // I'm returning a promise on all of the methods, because it allows me to "lift the state" 
+  // without having to mutate variables (I just like to not mutate variables) :)
   function addComment(comment: Omit<ChatComment, 'id'>): Promise<IDBValidKey> {
     return new Promise((resolve, reject) => {
       const transaction = db.transaction('comments', 'readwrite');
@@ -32,13 +34,26 @@ async function dbClient({ nameSpace }: DBClientProps) {
   }
 
   function removeComment(commentId: ChatComment['id']) {
-    return console.log('remove comment', commentId);
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction('comments', 'readwrite');
+      const store = transaction.objectStore('comments');
+      const getRequest = store.get(commentId);
+      getRequest.onsuccess = () => {
+        const comment = getRequest.result as ChatComment;
+        if (!comment) resolve(true);
+        const putRequest = store.put({ ...comment, deleted: true });
+        putRequest.onsuccess = () => resolve(true);
+        putRequest.onerror = () => reject(putRequest.error);
+      };
+      getRequest.onerror = () => reject(getRequest.error);
+    });
   }
 
   function getChatTimeline(): Promise<ResolvedChatComment[]> {
     return new Promise((resolve, reject) => {
       const tx = db.transaction('comments', 'readonly');
       const store = tx.objectStore('comments');
+
       const req = store.getAll();
 
       req.onsuccess = async () => {
@@ -46,7 +61,7 @@ async function dbClient({ nameSpace }: DBClientProps) {
 
         function getChildren(parentId: number): ResolvedChatComment[] {
           return allComments
-            .filter(comment => comment.parent === parentId)
+            .filter(comment => comment.parent === parentId && !comment.deleted)
             .sort((a, b) => a.id - b.id);
         }
 
@@ -59,10 +74,37 @@ async function dbClient({ nameSpace }: DBClientProps) {
 
         const rootComments = allComments.filter(comment => !comment.parent).sort((a, b) => a.id - b.id);
         const tree = await Promise.all(rootComments.map(comment => buildCommentTree(comment.id)));
-        resolve(tree.reverse());
+        resolve(tree.reverse().filter(comment => !comment.deleted));
       };
 
       req.onerror = () => reject(req.error);
+    });
+  }
+
+  function getDBConnectionAndCreateStores(name: string): Promise<IDBDatabase> {
+    return new Promise((resolve, reject) => {
+      const request = indexedDB.open(name, SCHEMA_VERSION);
+
+      request.onupgradeneeded = () => {
+        const db = request.result;
+        if (!db.objectStoreNames.contains('comments')) {
+          console.log('Created Store')
+          const store = db.createObjectStore('comments', { keyPath: 'id', autoIncrement: true });
+          return store
+        }
+      };
+
+      request.onsuccess = () => {
+        const db = request.result;
+        if (!db.objectStoreNames.contains('comments')) {
+          db.close();
+          indexedDB.deleteDatabase(name);
+          return reject(new Error('comments store was not created'));
+        }
+        return resolve(db);
+      };
+
+      request.onerror = () => reject(request.error);
     });
   }
 
@@ -72,32 +114,5 @@ async function dbClient({ nameSpace }: DBClientProps) {
     getChatTimeline,
   };
 }
-
-function getDBConnectionAndCreateStores(name: string): Promise<IDBDatabase> {
-  return new Promise((resolve, reject) => {
-    const request = indexedDB.open(name, SCHEMA_VERSION);
-
-    request.onupgradeneeded = () => {
-      const db = request.result;
-      if (!db.objectStoreNames.contains('comments')) {
-        console.log('Created Store')
-        return db.createObjectStore('comments', { keyPath: 'id', autoIncrement: true });
-      }
-    };
-
-    request.onsuccess = () => {
-      const db = request.result;
-      if (!db.objectStoreNames.contains('comments')) {
-        db.close();
-        indexedDB.deleteDatabase(name);
-        return reject(new Error('comments store was not created'));
-      }
-      return resolve(db);
-    };
-
-    request.onerror = () => reject(request.error);
-  });
-}
-
 
 export default dbClient;

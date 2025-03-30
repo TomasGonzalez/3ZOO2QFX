@@ -8,6 +8,7 @@ export interface ChatComment {
   timeStamp: string;
   sender: string;
   parent?: ChatComment['id'];
+  deleted: boolean
 }
 
 export interface ChatTimeline {
