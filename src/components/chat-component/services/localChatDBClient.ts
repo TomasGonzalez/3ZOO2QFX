@@ -86,7 +86,6 @@ async function dbClient({ nameSpace }: DBClientProps) {
       request.onupgradeneeded = () => {
         const db = request.result;
         if (!db.objectStoreNames.contains('comments')) {
-          console.log('Created Store')
           const store = db.createObjectStore('comments', { keyPath: 'id', autoIncrement: true });
           return store
         }

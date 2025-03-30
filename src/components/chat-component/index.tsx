@@ -26,7 +26,6 @@ export default function ChatComponentWithContext({ nameSpace, userName }: ChatCo
     });
 
     channel.current.onmessage = (event) => {
-      console.log('message')
       if (event.data?.type === TIMELINE_CONSTANT) chatDBClient?.getChatTimeline().then(setTimeline);
     };
 
@@ -55,7 +54,6 @@ export default function ChatComponentWithContext({ nameSpace, userName }: ChatCo
   }, [chatDBClient, updateTimeline, userName]);
 
   const removeComment = useCallback((commentId: number) => {
-    console.log('removing comment commentId:', commentId)
     chatDBClient?.removeComment(commentId)
     chatDBClient?.getChatTimeline().then(updateTimeline)
     channel?.current.postMessage({ type: TIMELINE_CONSTANT })

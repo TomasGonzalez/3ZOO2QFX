@@ -13,7 +13,6 @@ export default function CommentComponent({ comment }: CommentComponentProps) {
   const [textInputValue, setTextInputValue] = useState('')
 
   const onDelete = useCallback(() => {
-    console.log('removing comment', comment.id)
     chatContext?.removeComment(comment.id)
   }, [chatContext, comment.id])
 
