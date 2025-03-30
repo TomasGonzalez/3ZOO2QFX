@@ -12,16 +12,11 @@ export default function CommentComponent({ comment }: CommentComponentProps) {
   const [replyToComment, setReplyToComment] = useState<number | undefined>()
   const [textInputValue, setTextInputValue] = useState('')
 
+
   const onComment = useCallback(() => {
-    if (!chatContext?.chatDBClient || !chatContext.userName) return;
-    chatContext.chatDBClient.addComment({
-      body: textInputValue,
-      timeStamp: new Date().toISOString(),
-      sender: chatContext?.userName,
-      parent: comment.id
-    });
+    chatContext?.addComment({ body: textInputValue, parent: comment.id })
     setTextInputValue('')
-  }, [chatContext?.chatDBClient, chatContext?.userName, textInputValue, comment.id]);
+  }, [chatContext, comment.id, textInputValue])
 
   return <div style={{ padding: 8 }}>
     <strong>{comment.sender}:</strong> {comment.body}
