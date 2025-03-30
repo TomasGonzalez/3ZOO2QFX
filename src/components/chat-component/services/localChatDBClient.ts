@@ -14,7 +14,7 @@ interface DBClientProps {
 export type dbClientReturnTypes = {
   addComment: (comment: Omit<ChatComment, "id">) => Promise<IDBValidKey>;
   removeComment: (commentId: ChatComment["id"]) => void;
-  getChatTimeline: () => void;
+  getChatTimeline: () => Promise<ResolvedChatComment[]>;
 }
 
 const SCHEMA_VERSION = 1;
@@ -35,7 +35,6 @@ async function dbClient({ nameSpace }: DBClientProps) {
     return console.log('remove comment', commentId);
   }
 
-
   function getChatTimeline(): Promise<ResolvedChatComment[]> {
     return new Promise((resolve, reject) => {
       const tx = db.transaction('comments', 'readonly');
@@ -43,16 +42,16 @@ async function dbClient({ nameSpace }: DBClientProps) {
       const req = store.getAll();
 
       req.onsuccess = async () => {
-        const allComments: ChatComment[] = req.result;
+        const allComments: ResolvedChatComment[] = req.result;
 
-        function getChildren(parentId: number): ChatComment[] {
+        function getChildren(parentId: number): ResolvedChatComment[] {
           return allComments
             .filter(comment => comment.parent === parentId)
             .sort((a, b) => a.id - b.id);
         }
 
         async function buildCommentTree(parentId: number): Promise<ResolvedChatComment> {
-          const parent = allComments.find((comment: ChatComment) => comment.id === parentId)!;
+          const parent = allComments.find((comment: ResolvedChatComment) => comment.id === parentId)!;
           const children = getChildren(parentId);
           const nestedChildren = await Promise.all(children.map(child => buildCommentTree(child.id)));
           return { ...parent, children: nestedChildren };
@@ -60,7 +59,7 @@ async function dbClient({ nameSpace }: DBClientProps) {
 
         const rootComments = allComments.filter(comment => !comment.parent).sort((a, b) => a.id - b.id);
         const tree = await Promise.all(rootComments.map(comment => buildCommentTree(comment.id)));
-        resolve(tree);
+        resolve(tree.reverse());
       };
 
       req.onerror = () => reject(req.error);

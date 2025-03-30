@@ -1,5 +1,5 @@
 export interface ResolvedChatComment extends ChatComment {
-  children: ChatComment[]
+  children: ResolvedChatComment[]
 }
 
 export interface ChatComment {
@@ -11,5 +11,5 @@ export interface ChatComment {
 }
 
 export interface ChatTimeline {
-  comments: ChatComment['id'][];
+  comments: ResolvedChatComment['id'][];
 }

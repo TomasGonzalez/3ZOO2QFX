@@ -1,47 +1,82 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useContext, useEffect, useState } from 'react';
+import TextInput from './components/text-input'
+import CommentComponent from './components/comment-component';
+import { ChatContext } from './context-provider';
 import localChatDBClient, { dbClientReturnTypes } from './services/localChatDBClient';
-import { ChatComment } from './types';
+import { ResolvedChatComment } from './types';
 
 interface ChatComponentProps {
   nameSpace: string;
   userName: string;
 }
 
-export default function ChatComponent({ nameSpace, userName }: ChatComponentProps) {
-  const [timeline, setTimeline] = useState<ChatComment[]>([]);
+export default function ChatComponentWithContext({ nameSpace, userName }: ChatComponentProps) {
+  const [timeline, setTimeline] = useState<ResolvedChatComment[]>([]);
   const [chatDBClient, setChatDBClient] = useState<dbClientReturnTypes>();
 
-  const onComment = useCallback(() => {
-    if (!chatDBClient) return;
-    chatDBClient.addComment({
-      body: 'This is a test comment...',
-      timeStamp: new Date().toISOString(),
-      sender: userName,
-      parent: undefined
-    });
-  }, [chatDBClient, userName]);
 
   useEffect(() => {
-    localChatDBClient({ nameSpace }).then(async (dbClientReturnTypes) => {
-      const comments = await dbClientReturnTypes.getChatTimeline();
-      console.log(comments);
+    const channel = new BroadcastChannel(nameSpace);
+
+    localChatDBClient({ nameSpace }).then(async (dbClient) => {
+      const comments = await dbClient.getChatTimeline();
       setTimeline(comments);
-      setChatDBClient(dbClientReturnTypes);
+      setChatDBClient(dbClient);
     });
-  }, [nameSpace]);
+
+    channel.onmessage = (event) => {
+      if (event.data?.type === 'new-comment') {
+        chatDBClient?.getChatTimeline().then(setTimeline);
+      }
+    };
+
+    return () => {
+      channel.close();
+    };
+  }, [nameSpace, chatDBClient]);
+
+  const updateTimeline = (newTimeline: ResolvedChatComment[]) => setTimeline(newTimeline)
+
+  return (
+    <ChatContext.Provider value={{ timeline, chatDBClient, nameSpace, userName, updateTimeline }}>
+      <ChatComponent />
+    </ChatContext.Provider>
+  );
+}
+
+function ChatComponent() {
+  const [textInputValue, setTextInputValue] = useState('')
+  const chatContext = useContext(ChatContext)
+
+  const onComment = useCallback(() => {
+    if (!chatContext?.chatDBClient || !chatContext.userName) return;
+    chatContext.chatDBClient.addComment({
+      body: textInputValue,
+      timeStamp: new Date().toISOString(),
+      sender: chatContext.userName,
+      parent: undefined
+    });
+    setTextInputValue('')
+    chatContext?.chatDBClient?.getChatTimeline().then((timeline) => chatContext.updateTimeline(timeline))
+  }, [chatContext, textInputValue]);
 
   return (
     <div>
-      This is the chat component
-      <div onClick={onComment} />
+      <TextInput
+        value={textInputValue}
+        onTextChange={(event) => setTextInputValue(event.target.value)}
+        onComment={onComment}
+      />
       <div>
         <h3>Timeline</h3>
-        {timeline.map(comment => (
-          <div key={comment.id}>
-            <strong>{comment.sender}:</strong> {comment.body}
-          </div>
-        ))}
+        {chatContext &&
+          chatContext?.timeline?.map(comment =>
+            <CommentComponent key={comment?.id} comment={comment} />
+          )
+        }
       </div>
     </div>
   );
 }
+
+
