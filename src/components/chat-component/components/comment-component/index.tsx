@@ -24,18 +24,18 @@ export default function CommentComponent({ comment }: CommentComponentProps) {
   }, [chatContext, comment.id, textInputValue])
 
   return <div style={{ padding: 8 }}>
-    <strong>{comment.sender}:</strong> {comment.body}
-    {!!comment.children.length &&
-      <div style={{ marginLeft: 20 }}>
-        {comment?.children.map((comment) => <CommentComponent comment={comment} key={comment.id} />)}
-      </div>
-    }
     <button onClick={() => setReplyToComment(comment.id)}>
       reply
     </button>
     <button onClick={onDelete}>
       delete
     </button>
+    <strong style={{ marginLeft: 20 }}>{comment.sender}:</strong> {comment.body}
+    {!!comment.children.length &&
+      <div style={{ marginLeft: 20 }}>
+        {comment?.children.map((comment) => <CommentComponent comment={comment} key={comment.id} />)}
+      </div>
+    }
     {replyToComment && <TextInput
       value={textInputValue}
       onTextChange={(event) => setTextInputValue(event.target.value)}

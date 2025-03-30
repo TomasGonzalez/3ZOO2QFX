@@ -1,9 +1,10 @@
-import { useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { useCallback, useContext, useEffect, useRef, useState } from 'react';
 import TextInput from './components/text-input'
 import CommentComponent from './components/comment-component';
 import { AddComment, ChatContext } from './context-provider';
 import localChatDBClient, { dbClientReturnTypes } from './services/localChatDBClient';
 import { ResolvedChatComment } from './types';
+import React from 'react';
 
 interface ChatComponentProps {
   nameSpace: string;
@@ -15,7 +16,7 @@ const TIMELINE_CONSTANT = 'update-timeline'
 export default function ChatComponentWithContext({ nameSpace, userName }: ChatComponentProps) {
   const [timeline, setTimeline] = useState<ResolvedChatComment[]>([]);
   const [chatDBClient, setChatDBClient] = useState<dbClientReturnTypes>();
-  const channel = useMemo(() => new BroadcastChannel(nameSpace), [nameSpace]);
+  const channel = useRef(new BroadcastChannel(nameSpace));
 
   useEffect(() => {
     if (!chatDBClient) localChatDBClient({ nameSpace }).then(async (dbClient) => {
@@ -24,16 +25,22 @@ export default function ChatComponentWithContext({ nameSpace, userName }: ChatCo
       setChatDBClient(dbClient);
     });
 
-    channel.onmessage = (event) => {
+    channel.current.onmessage = (event) => {
+      console.log('message')
       if (event.data?.type === TIMELINE_CONSTANT) chatDBClient?.getChatTimeline().then(setTimeline);
     };
 
     return () => {
-      channel.close();
+      // don't claer the channel because react strict mode will unmount the component. 
+      // normally i would add a flat to allow for production. 
+      // channel.current.close();
     };
   }, [channel, chatDBClient, nameSpace]);
 
-  const updateTimeline = useCallback((newTimeline: ResolvedChatComment[]) => { setTimeline(newTimeline); channel?.postMessage({ type: 'update-timeline' }) }, [channel])
+  const updateTimeline = useCallback((newTimeline: ResolvedChatComment[]) => {
+    setTimeline(newTimeline);
+    channel?.current.postMessage({ type: TIMELINE_CONSTANT })
+  }, [channel])
 
   const addComment = useCallback(({ body, parent }: AddComment) => {
     if (!chatDBClient || !userName) return;
@@ -44,14 +51,14 @@ export default function ChatComponentWithContext({ nameSpace, userName }: ChatCo
       parent,
       deleted: false
     });
-    chatDBClient?.getChatTimeline().then((timeline) => updateTimeline(timeline))
+    chatDBClient?.getChatTimeline().then(updateTimeline)
   }, [chatDBClient, updateTimeline, userName]);
 
   const removeComment = useCallback((commentId: number) => {
     console.log('removing comment commentId:', commentId)
     chatDBClient?.removeComment(commentId)
-    chatDBClient?.getChatTimeline().then((timeline) => updateTimeline(timeline))
-    channel?.postMessage({ type: 'update-timeline' })
+    chatDBClient?.getChatTimeline().then(updateTimeline)
+    channel?.current.postMessage({ type: TIMELINE_CONSTANT })
   }, [channel, chatDBClient, updateTimeline])
 
   return (

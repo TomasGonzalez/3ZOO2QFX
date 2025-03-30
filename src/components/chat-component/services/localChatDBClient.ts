@@ -58,7 +58,6 @@ async function dbClient({ nameSpace }: DBClientProps) {
 
       req.onsuccess = async () => {
         const allComments: ResolvedChatComment[] = req.result;
-
         function getChildren(parentId: number): ResolvedChatComment[] {
           return allComments
             .filter(comment => comment.parent === parentId && !comment.deleted)
@@ -84,7 +83,6 @@ async function dbClient({ nameSpace }: DBClientProps) {
   function getDBConnectionAndCreateStores(name: string): Promise<IDBDatabase> {
     return new Promise((resolve, reject) => {
       const request = indexedDB.open(name, SCHEMA_VERSION);
-
       request.onupgradeneeded = () => {
         const db = request.result;
         if (!db.objectStoreNames.contains('comments')) {
@@ -103,7 +101,6 @@ async function dbClient({ nameSpace }: DBClientProps) {
         }
         return resolve(db);
       };
-
       request.onerror = () => reject(request.error);
     });
   }
