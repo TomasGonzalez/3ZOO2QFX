@@ -4,7 +4,6 @@ import CommentComponent from './components/comment-component';
 import { AddComment, ChatContext } from './context-provider';
 import localChatDBClient, { dbClientReturnTypes } from './services/localChatDBClient';
 import { ResolvedChatComment } from './types';
-import React from 'react';
 
 interface ChatComponentProps {
   nameSpace: string;
@@ -30,8 +29,9 @@ export default function ChatComponentWithContext({ nameSpace, userName }: ChatCo
     };
 
     return () => {
-      // don't claer the channel because react strict mode will unmount the component. 
-      // normally i would add a flat to allow for production. 
+      // don't claer the channel because (react strict) mode will unmount the component. 
+      // normally i would add a flag to allow for production. 
+      // I leave it here commented becuase I know it should be cleared. 
       // channel.current.close();
     };
   }, [channel, chatDBClient, nameSpace]);

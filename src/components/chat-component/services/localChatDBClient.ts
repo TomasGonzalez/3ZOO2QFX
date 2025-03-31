@@ -49,11 +49,12 @@ async function dbClient({ nameSpace }: DBClientProps) {
     });
   }
 
+  // This method could be optimized further by implementing pagination and also doing filtering of the deleted comment by index instead of actually filter them. 
+  // But I hope this is good enougth to showcase the main functionalities of the chat for now.
   function getChatTimeline(): Promise<ResolvedChatComment[]> {
     return new Promise((resolve, reject) => {
       const tx = db.transaction('comments', 'readonly');
       const store = tx.objectStore('comments');
-
       const req = store.getAll();
 
       req.onsuccess = async () => {
@@ -73,6 +74,8 @@ async function dbClient({ nameSpace }: DBClientProps) {
 
         const rootComments = allComments.filter(comment => !comment.parent).sort((a, b) => a.id - b.id);
         const tree = await Promise.all(rootComments.map(comment => buildCommentTree(comment.id)));
+
+        //Yes this is not an ideal way of filtering deleted comments. I should query by excluding index delete, --_(*_*)_--
         resolve(tree.reverse().filter(comment => !comment.deleted));
       };
 
