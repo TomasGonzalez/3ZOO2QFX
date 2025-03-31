@@ -8,13 +8,19 @@ interface TextInputProps {
 
 export default function TextInput({ onComment, onTextChange, value }: TextInputProps) {
   return (
-    <div>
+    <div className="flex mb-4">
       <input
-        onChange={onTextChange}
-        placeholder={"Type your comment here..."}
+        type="text"
         value={value}
+        onChange={onTextChange}
+        className="flex-1 p-2 border border-gray-300 rounded-l"
       />
-      <button onClick={onComment}>Comment</button>
+      <button
+        onClick={onComment}
+        className="p-2 bg-blue-500 text-white rounded-r"
+      >
+        Comment
+      </button>
     </div>
   )
 }

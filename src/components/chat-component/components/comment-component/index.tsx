@@ -22,23 +22,37 @@ export default function CommentComponent({ comment }: CommentComponentProps) {
     setTextInputValue('')
   }, [chatContext, comment.id, textInputValue])
 
-  return <div style={{ padding: 8 }}>
-    <button onClick={() => setReplyToComment(comment.id)}>
-      reply
-    </button>
-    <button onClick={onDelete}>
-      delete
-    </button>
-    <strong style={{ marginLeft: 20 }}>{comment.sender}:</strong> {comment.body}
-    {!!comment.children.length &&
-      <div style={{ marginLeft: 20 }}>
-        {comment?.children.map((comment) => <CommentComponent comment={comment} key={comment.id} />)}
+  return <div className="p-2 border-t border-gray-200">
+    <div className="flex items-center mb-1">
+      <button
+        onClick={() => setReplyToComment(comment.id)}
+        className="text-blue-500 hover:underline text-sm mr-2"
+      >
+        reply
+      </button>
+      <button onClick={onDelete} className="text-red-500 hover:underline text-sm">
+        delete
+      </button>
+    </div>
+    <div>
+      <strong className="text-gray-800">{comment.sender}:</strong>{' '}
+      <span className="text-gray-600">{comment.body}</span>
+    </div>
+    {!!comment.children.length && (
+      <div className="ml-4 mt-2">
+        {comment?.children.map((child) => (
+          <CommentComponent comment={child} key={child.id} />
+        ))}
       </div>
-    }
-    {replyToComment && <TextInput
-      value={textInputValue}
-      onTextChange={(event) => setTextInputValue(event.target.value)}
-      onComment={onComment}
-    />}
+    )}
+    {replyToComment && (
+      <div className="mt-2">
+        <TextInput
+          value={textInputValue}
+          onTextChange={(event) => setTextInputValue(event.target.value)}
+          onComment={onComment}
+        />
+      </div>
+    )}
   </div>
 }

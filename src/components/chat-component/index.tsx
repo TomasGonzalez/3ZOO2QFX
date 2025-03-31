@@ -18,21 +18,19 @@ export default function ChatComponentWithContext({ nameSpace, userName }: ChatCo
   const channel = useRef(new BroadcastChannel(nameSpace));
 
   useEffect(() => {
+    const channelRef = channel.current
     if (!chatDBClient) localChatDBClient({ nameSpace }).then(async (dbClient) => {
       const comments = await dbClient.getChatTimeline();
       setTimeline(comments);
       setChatDBClient(dbClient);
     });
 
-    channel.current.onmessage = (event) => {
+    channelRef.onmessage = (event) => {
       if (event.data?.type === TIMELINE_CONSTANT) chatDBClient?.getChatTimeline().then(setTimeline);
     };
 
     return () => {
-      // don't claer the channel because (react strict) mode will unmount the component. 
-      // normally i would add a flag to allow for production. 
-      // I leave it here commented becuase I know it should be cleared. 
-      // channel.current.close();
+      if (process.env.NODE_ENV !== 'development') channelRef.close();
     };
   }, [channel, chatDBClient, nameSpace]);
 
@@ -75,23 +73,20 @@ function ChatComponent() {
     setTextInputValue('')
   }, [chatContext, textInputValue])
 
-  return (
-    <div>
-      <TextInput
-        value={textInputValue}
-        onTextChange={(event) => setTextInputValue(event.target.value)}
-        onComment={onComment}
-      />
-      <div>
-        <h3>Timeline</h3>
-        {chatContext &&
-          chatContext?.timeline?.map(comment =>
-            <CommentComponent key={comment?.id} comment={comment} />
-          )
-        }
-      </div>
+  return <div className="p-4 bg-gray-100">
+    <TextInput
+      value={textInputValue}
+      onTextChange={(event) => setTextInputValue(event.target.value)}
+      onComment={onComment}
+    />
+    <div className="mt-4">
+      <h3 className="text-lg font-semibold mb-2">Timeline</h3>
+      {chatContext &&
+        chatContext?.timeline?.map((comment) => (
+          <CommentComponent key={comment?.id} comment={comment} />
+        ))}
     </div>
-  );
+  </div>
 }
 
 
