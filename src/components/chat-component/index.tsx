@@ -75,6 +75,7 @@ function ChatComponent() {
 
   return <div className="p-4 bg-gray-100">
     <TextInput
+      testId={'comment-input'}
       value={textInputValue}
       onTextChange={(event) => setTextInputValue(event.target.value)}
       onComment={onComment}

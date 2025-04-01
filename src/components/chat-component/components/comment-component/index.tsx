@@ -27,10 +27,11 @@ export default function CommentComponent({ comment }: CommentComponentProps) {
       <button
         onClick={() => setReplyToComment(comment.id)}
         className="text-blue-500 hover:underline text-sm mr-2"
+        data-testid='reply-button'
       >
         reply
       </button>
-      <button onClick={onDelete} className="text-red-500 hover:underline text-sm">
+      <button onClick={onDelete} data-testid="delete-button" className="text-red-500 hover:underline text-sm">
         delete
       </button>
     </div>
@@ -48,6 +49,7 @@ export default function CommentComponent({ comment }: CommentComponentProps) {
     {replyToComment && (
       <div className="mt-2">
         <TextInput
+          testId={'reply-input'}
           value={textInputValue}
           onTextChange={(event) => setTextInputValue(event.target.value)}
           onComment={onComment}

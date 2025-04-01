@@ -4,7 +4,6 @@ import {
   fireEvent,
   waitFor,
   act,
-  within,
 } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import 'fake-indexeddb/auto';
@@ -59,11 +58,11 @@ describe('ChatComponent Integration Tests', () => {
     });
 
     expect(screen.queryByText(`/${COMMENT}/`)).not.toBeInTheDocument();
-    const textInput = screen.getByPlaceholderText('Type your comment here...');
+    const textInput = screen.getByTestId("comment-input");
     await act(async () =>
       fireEvent.change(textInput, { target: { value: COMMENT } })
     );
-    await act(async () => fireEvent.click(screen.getByText('Comment')));
+    await act(async () => fireEvent.click(screen.getByTestId('comment-button')));
     await waitFor(() => expect(screen.getByText(COMMENT)).toBeInTheDocument());
     const timeline = await dbClient.getChatTimeline();
     expect(timeline.length).toBe(1);
@@ -92,11 +91,7 @@ describe('ChatComponent Integration Tests', () => {
     await waitFor(() => {
       expect(screen.getByText(COMMENT)).toBeInTheDocument();
     });
-    const commentElement = screen.getByText(COMMENT);
-    const commentContainer = commentElement.closest('div');
-    if (!commentContainer) throw new Error('Comment container not found');
-    const deleteButton = within(commentContainer).getByText('delete');
-
+    const deleteButton = screen.getByTestId('delete-button');
     if (!deleteButton) throw new Error('Delete button not found');
     await act(async () => fireEvent.click(deleteButton));
     await waitFor(() =>
@@ -132,18 +127,11 @@ describe('ChatComponent Integration Tests', () => {
     await waitFor(() =>
       expect(screen.getByText(PARENT_COMMENT)).toBeInTheDocument()
     );
-    const commentElement = screen.getByText(PARENT_COMMENT);
-    const commentContainer = commentElement.closest('div');
-    if (!commentContainer) throw new Error('Comment container not found');
-
-    const replyButton = within(commentContainer).getByText('reply');
-    if (!replyButton) throw new Error('Reply button not found');
+    const replyButton = screen.getByTestId('reply-button');
     await act(async () => fireEvent.click(replyButton));
 
-    const inputs = screen.getAllByPlaceholderText('Type your comment here...');
-    expect(inputs.length).toBeGreaterThan(1);
+    const replyInput = screen.getByTestId('reply-input');
 
-    const replyInput = inputs[inputs.length - 1];
     await act(async () => {
       fireEvent.change(replyInput, { target: { value: REPLY_COMMENT } });
     });
